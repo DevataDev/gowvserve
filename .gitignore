@@ -152,6 +152,8 @@ Temporary Items
 !.vscode/extensions.json
 !.vscode/*.code-snippets
 
+.idea/
+
 # Local History for Visual Studio Code
 .history/
 
@@ -165,4 +167,4 @@ Temporary Items
 
 # End of https://www.toptal.com/developers/gitignore/api/goland+iml,go,visualstudiocode,macos
 
-config.toml
+serve.yaml
