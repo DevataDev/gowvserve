@@ -198,6 +198,7 @@ func main() {
 			"message": "Session opened",
 			"data": gin.H{
 				"session_id": sessionIdHex,
+				"system_id":  cdm.GetSystemId(),
 			},
 		})
 		return
