@@ -2,5 +2,5 @@
 Go implementation of PyWidevine serve
 
 ### Thanks to :
-- (https://github.com/iyear/gowidevine)[GoWidevine]
-- (https://github.com/devine-dl/pywidevine)[PyWidevine]
+- [GoWidevine](https://github.com/iyear/gowidevine)
+- [PyWidevine](https://github.com/devine-dl/pywidevine)
