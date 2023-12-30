@@ -1,6 +1,6 @@
 module github.com/devatadev/gowvserve
 
-go 1.21.4
+go 1.23
 
 require (
 	github.com/Eyevinn/mp4ff v0.40.2 // indirect
