@@ -143,6 +143,8 @@ Temporary Items
 ### macOS Patch ###
 # iCloud generated files
 *.icloud
+devices/*.wvd
+serve
 
 ### VisualStudioCode ###
 .vscode/*
