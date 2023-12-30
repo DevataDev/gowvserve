@@ -184,6 +184,9 @@ func (c *CDM) GetLicenseChallenge(sessionId []byte, pssh *PSSH, typ wv.LicenseTy
 	for i, s := range *c.session {
 		// if session id matches then return license challenge
 		if len(s.Id) == len(sessionId) && hmac.Equal(s.Id, sessionId) {
+			if (s.ServiceCertificate == nil || s.ServiceCertificate.PublicKey == nil) && privacyMode {
+				return nil, fmt.Errorf("privacy mode must provide cert")
+			}
 			licenseChallenge, licenseRequest, err := c.getLicenseChallenge(pssh, typ, privacyMode, s.ServiceCertificate)
 			if err != nil {
 				return nil, fmt.Errorf("get license challenge: %w", err)
