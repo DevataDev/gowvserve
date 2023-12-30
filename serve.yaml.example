@@ -1,0 +1,14 @@
+serve:
+  port: 9000
+  host: 127.0.0.1
+  mode: production
+  force_privacy_mode: false
+
+users:
+  thisissecretkey:
+    name: example
+    devices:
+      - test
+
+devices:
+  - "./devices/test.wvd"
