@@ -10,7 +10,6 @@ import (
 	"github.com/chmike/cmac-go"
 	wv "github.com/devatadev/gowvserve/wv/proto"
 	"google.golang.org/protobuf/proto"
-	"unsafe"
 )
 
 func Pointer[T any](v T) *T {
@@ -72,15 +71,6 @@ func DecryptAES(key, iv, ciphertext []byte) ([]byte, error) {
 	}
 
 	return unpaddedPlaintext, nil
-}
-
-func GetBytesFromPtr(ptr uintptr, len int, cap int) []byte {
-	var sl = struct {
-		addr uintptr
-		len  int
-		cap  int
-	}{ptr, len, cap}
-	return *(*[]byte)(unsafe.Pointer(&sl))
 }
 
 // ParseServiceCert parses a service certificate which can be used in privacy mode.
