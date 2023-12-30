@@ -25,6 +25,7 @@ const (
 // Device represents a Widevine device.
 type Device struct {
 	deviceType *DeviceTypes
+	systemId   int
 	clientID   *wv.ClientIdentification
 	cert       *wv.DrmCertificate
 	privateKey *rsa.PrivateKey
@@ -69,6 +70,10 @@ func (d *Device) PrivateKey() *rsa.PrivateKey {
 
 func (d *Device) Type() *DeviceTypes {
 	return d.deviceType
+}
+
+func (d *Device) SystemId() int {
+	return d.systemId
 }
 
 type wvHeader struct {
@@ -141,6 +146,7 @@ func toDevice(clientID, privateKey []byte, deviceType DeviceTypes) (*Device, err
 		clientID:   c,
 		cert:       cert,
 		privateKey: key,
+		systemId:   int(*cert.SystemId),
 	}, nil
 }
 

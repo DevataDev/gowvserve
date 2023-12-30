@@ -155,6 +155,10 @@ func (c *CDM) SetServiceCertificate(sessionId []byte, cert []byte) (*wv.DrmCerti
 	return nil, fmt.Errorf("session not found")
 }
 
+func (c *CDM) GetSystemId() int {
+	return c.device.SystemId()
+}
+
 // GetServiceCertificate returns the service certificate of the CDM.
 func (c *CDM) GetServiceCertificate(sessionId []byte) (*wv.DrmCertificate, error) {
 	for _, s := range *c.session {
