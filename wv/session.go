@@ -1,6 +1,9 @@
 package wv
 
-import wv "github.com/devatadev/gowvserve/wv/proto"
+import (
+	"encoding/hex"
+	wv "github.com/devatadev/gowvserve/wv/proto"
+)
 
 type Session struct {
 	Number             int
@@ -8,4 +11,8 @@ type Session struct {
 	Context            map[string][][]byte
 	ServiceCertificate *wv.DrmCertificate
 	Keys               []*Key
+}
+
+func (s *Session) HexId() string {
+	return hex.EncodeToString(s.Id)
 }

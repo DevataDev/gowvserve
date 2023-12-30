@@ -193,12 +193,11 @@ func main() {
 			c.Abort()
 			return
 		}
-		sessionIdHex := hex.EncodeToString(session.Id)
 		c.JSON(200, gin.H{
 			"status":  200,
 			"message": "Success",
 			"data": gin.H{
-				"session_id": sessionIdHex,
+				"session_id": session.HexId(),
 				"system_id":  cdm.GetSystemId(),
 			},
 		})
