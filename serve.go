@@ -55,8 +55,24 @@ func readConfig() *config {
 }
 
 func main() {
-	router := gin.Default()
 	config := readConfig()
+	mode := config.Serve.Mode
+	if mode == "" {
+		mode = "release"
+	} else if (mode == "prod") || (mode == "production") {
+		mode = "release"
+	} else {
+		mode = "debug"
+	}
+	var router *gin.Engine
+	if mode == "release" {
+		gin.SetMode(gin.ReleaseMode)
+		// access log file
+		gin.DefaultWriter = ioutil.Discard
+		router = gin.New()
+	} else {
+		router = gin.Default()
+	}
 	opened_cdm := make(map[string]*wv.CDM)
 	// middleware check for secret key
 	router.Use(func(c *gin.Context) {
@@ -684,5 +700,5 @@ func main() {
 	if err != nil {
 		return
 	}
-	log.Print("Server started on " + address + "!")
+	log.Print("Server started on " + address + "! - using mode " + mode + ", press Ctrl+C to exit.")
 }
