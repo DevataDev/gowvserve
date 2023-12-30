@@ -9,8 +9,9 @@ import (
 	wvgo "github.com/devatadev/gowvserve/wv/proto"
 	"github.com/gin-gonic/gin"
 	"gopkg.in/yaml.v3"
-	"io/ioutil"
+	"io"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -39,7 +40,7 @@ type KeyResponseItem struct {
 }
 
 func readConfig() *Config {
-	yamlFile, err := ioutil.ReadFile("./serve.yaml")
+	yamlFile, err := os.ReadFile("./serve.yaml")
 
 	if err != nil {
 		panic(err)
@@ -68,16 +69,16 @@ func main() {
 	if mode == "release" {
 		gin.SetMode(gin.ReleaseMode)
 		// access log file
-		gin.DefaultWriter = ioutil.Discard
+		gin.DefaultWriter = io.Discard
 		router = gin.New()
 	} else {
 		router = gin.Default()
 	}
-	opened_cdm := make(map[string]*wv.CDM)
+	openedCdm := make(map[string]*wv.CDM)
 	// middleware check for secret key
 	router.Use(func(c *gin.Context) {
-		secret_key := c.Request.Header["X-Secret-Key"]
-		if secret_key == nil {
+		secretKey := c.Request.Header["X-Secret-Key"]
+		if secretKey == nil {
 			c.JSON(401, gin.H{
 				"status":  401,
 				"message": "Unauthorized",
@@ -85,7 +86,7 @@ func main() {
 			c.Abort()
 			return
 		}
-		user := config.Users[secret_key[0]]
+		user := config.Users[secretKey[0]]
 		if user.Name == "" {
 			c.JSON(401, gin.H{
 				"status":  401,
@@ -94,6 +95,8 @@ func main() {
 			c.Abort()
 			return
 		}
+		// set secret key to context
+		c.Set("secret_key", secretKey[0])
 		c.Next()
 	})
 	// set response headers
@@ -128,9 +131,9 @@ func main() {
 		})
 	})
 	router.GET("/:device/open", func(c *gin.Context) {
-		secret_key := c.Request.Header["X-Secret-Key"]
-		device_name := c.Param("device")
-		if secret_key == nil {
+		secretKey, _ := c.Get("secret_key")
+		deviceName := c.Param("device")
+		if secretKey == nil {
 			c.JSON(401, gin.H{
 				"status":  401,
 				"message": "Unauthorized",
@@ -138,7 +141,7 @@ func main() {
 			c.Abort()
 			return
 		}
-		if config.Users[secret_key[0]].Devices[0] != device_name {
+		if config.Users[secretKey.(string)].Devices[0] != deviceName {
 			c.JSON(401, gin.H{
 				"status":  401,
 				"message": "Unauthorized",
@@ -147,16 +150,16 @@ func main() {
 			return
 		}
 
-		selected_device := config.Devices[0]
+		selectedDevice := config.Devices[0]
 		for _, device := range config.Devices {
 			deviceFilename := strings.Split(device, "/")
 			deviceFilename = strings.Split(deviceFilename[len(deviceFilename)-1], ".")
-			if deviceFilename[0] == device_name {
-				selected_device = device
+			if deviceFilename[0] == deviceName {
+				selectedDevice = device
 			}
 		}
 
-		wvd_file, err := ioutil.ReadFile(selected_device)
+		wvdFile, err := os.ReadFile(selectedDevice)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"status":  400,
@@ -166,7 +169,7 @@ func main() {
 			return
 		}
 
-		device, err := wv.NewDevice(wv.FromWVD(bytes.NewReader(wvd_file)))
+		device, err := wv.NewDevice(wv.FromWVD(bytes.NewReader(wvdFile)))
 		if err != nil {
 			c.JSON(400, gin.H{
 				"status":  400,
@@ -176,13 +179,13 @@ func main() {
 			return
 		}
 		var cdm *wv.CDM
-		cdmKey := secret_key[0] + device_name
+		cdmKey := secretKey.(string) + deviceName
 		// check if device is already opened
-		if opened_cdm[cdmKey] != nil {
-			cdm = opened_cdm[cdmKey]
+		if openedCdm[cdmKey] != nil {
+			cdm = openedCdm[cdmKey]
 		} else {
 			cdm = wv.NewCDM(device)
-			opened_cdm[cdmKey] = cdm
+			openedCdm[cdmKey] = cdm
 		}
 		session, err := cdm.OpenSession()
 		if err != nil {
@@ -205,10 +208,10 @@ func main() {
 	})
 
 	router.GET("/:device/close/:session_id", func(c *gin.Context) {
-		secret_key := c.Request.Header["X-Secret-Key"]
-		device_name := c.Param("device")
-		session_id := c.Param("session_id")
-		if secret_key == nil {
+		secretKey, _ := c.Get("secret_key")
+		deviceName := c.Param("device")
+		sessionId := c.Param("session_id")
+		if secretKey == nil {
 			c.JSON(401, gin.H{
 				"status":  401,
 				"message": "Unauthorized",
@@ -217,7 +220,7 @@ func main() {
 			return
 		}
 
-		if config.Users[secret_key[0]].Devices[0] != device_name {
+		if config.Users[secretKey.(string)].Devices[0] != deviceName {
 			c.JSON(401, gin.H{
 				"status":  401,
 				"message": "Unauthorized",
@@ -226,8 +229,8 @@ func main() {
 			return
 		}
 
-		cdmKey := secret_key[0] + device_name
-		cdm := opened_cdm[cdmKey]
+		cdmKey := secretKey.(string) + deviceName
+		cdm := openedCdm[cdmKey]
 		if cdm == nil {
 			c.JSON(400, gin.H{
 				"status":  400,
@@ -237,7 +240,7 @@ func main() {
 			return
 		}
 
-		sessionId, err := hex.DecodeString(session_id)
+		decodedSessionId, err := hex.DecodeString(sessionId)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"status":  400,
@@ -247,7 +250,7 @@ func main() {
 			return
 		}
 
-		err = cdm.CloseSession(sessionId)
+		err = cdm.CloseSession(decodedSessionId)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"status":  400,
@@ -265,10 +268,10 @@ func main() {
 	})
 
 	router.POST("/:device/set_service_certificate", func(c *gin.Context) {
-		secretKey := c.Request.Header["X-Secret-Key"]
+		secretKey, _ := c.Get("secret_key")
 		deviceName := c.Param("device")
 		requestBody := c.Request.Body
-		body, err := ioutil.ReadAll(requestBody)
+		body, err := io.ReadAll(requestBody)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"status":  400,
@@ -308,7 +311,7 @@ func main() {
 			return
 		}
 
-		if config.Users[secretKey[0]].Devices[0] != deviceName {
+		if config.Users[secretKey.(string)].Devices[0] != deviceName {
 			c.JSON(401, gin.H{
 				"status":  401,
 				"message": "Unauthorized",
@@ -317,8 +320,8 @@ func main() {
 			return
 		}
 
-		cdmKey := secretKey[0] + deviceName
-		cdm := opened_cdm[cdmKey]
+		cdmKey := secretKey.(string) + deviceName
+		cdm := openedCdm[cdmKey]
 		if cdm == nil {
 			c.JSON(400, gin.H{
 				"status":  400,
@@ -359,11 +362,11 @@ func main() {
 	})
 
 	router.POST("/:device/get_license_challenge/:license_type", func(c *gin.Context) {
-		secretKey := c.Request.Header["X-Secret-Key"]
+		secretKey, _ := c.Get("secret_key")
 		deviceName := c.Param("device")
 		licenseType := c.Param("license_type")
 		requestBody := c.Request.Body
-		body, err := ioutil.ReadAll(requestBody)
+		body, err := io.ReadAll(requestBody)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"status":  400,
@@ -403,7 +406,7 @@ func main() {
 			return
 		}
 
-		if config.Users[secretKey[0]].Devices[0] != deviceName {
+		if config.Users[secretKey.(string)].Devices[0] != deviceName {
 			c.JSON(401, gin.H{
 				"status":  401,
 				"message": "Unauthorized",
@@ -412,8 +415,8 @@ func main() {
 			return
 		}
 
-		cdmKey := secretKey[0] + deviceName
-		cdm := opened_cdm[cdmKey]
+		cdmKey := secretKey.(string) + deviceName
+		cdm := openedCdm[cdmKey]
 		if cdm == nil {
 			c.JSON(400, gin.H{
 				"status":  400,
@@ -431,8 +434,8 @@ func main() {
 			c.Abort()
 			return
 		}
-		base64Pssh := jsonBody["init_data"].(string)
-		psshDecoded, err := base64.StdEncoding.DecodeString(base64Pssh)
+		base64PSSH := jsonBody["init_data"].(string)
+		psshDecoded, err := base64.StdEncoding.DecodeString(base64PSSH)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"status":  400,
@@ -483,10 +486,10 @@ func main() {
 	})
 
 	router.POST("/:device/parse_license", func(c *gin.Context) {
-		secretKey := c.Request.Header["X-Secret-Key"]
+		secretKey, _ := c.Get("secret_key")
 		deviceName := c.Param("device")
 		requestBody := c.Request.Body
-		body, err := ioutil.ReadAll(requestBody)
+		body, err := io.ReadAll(requestBody)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"status":  400,
@@ -525,7 +528,7 @@ func main() {
 			return
 		}
 
-		if config.Users[secretKey[0]].Devices[0] != deviceName {
+		if config.Users[secretKey.(string)].Devices[0] != deviceName {
 			c.JSON(401, gin.H{
 				"status":  401,
 				"message": "Unauthorized",
@@ -534,8 +537,8 @@ func main() {
 			return
 		}
 
-		cdmKey := secretKey[0] + deviceName
-		cdm := opened_cdm[cdmKey]
+		cdmKey := secretKey.(string) + deviceName
+		cdm := openedCdm[cdmKey]
 		if cdm == nil {
 			c.JSON(400, gin.H{
 				"status":  400,
@@ -582,10 +585,10 @@ func main() {
 	})
 
 	router.POST("/:device/get_keys/:key_type", func(c *gin.Context) {
-		secretKey := c.Request.Header["X-Secret-Key"]
+		secretKey, _ := c.Get("secret_key")
 		deviceName := c.Param("device")
 		requestBody := c.Request.Body
-		body, err := ioutil.ReadAll(requestBody)
+		body, err := io.ReadAll(requestBody)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"status":  400,
@@ -625,7 +628,7 @@ func main() {
 			return
 		}
 
-		if config.Users[secretKey[0]].Devices[0] != deviceName {
+		if config.Users[secretKey.(string)].Devices[0] != deviceName {
 			c.JSON(401, gin.H{
 				"status":  401,
 				"message": "Unauthorized",
@@ -634,8 +637,8 @@ func main() {
 			return
 		}
 
-		cdmKey := secretKey[0] + deviceName
-		cdm := opened_cdm[cdmKey]
+		cdmKey := secretKey.(string) + deviceName
+		cdm := openedCdm[cdmKey]
 		if cdm == nil {
 			c.JSON(400, gin.H{
 				"status":  400,
