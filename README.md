@@ -5,6 +5,10 @@ Go implementation of PyWidevine serve
 ```bash
 go run serve.go
 ```
+or just run the binary
+```bash
+./gowvserve
+```
 
 ### Requirements
 - [Go](https://golang.org/)
