@@ -15,18 +15,18 @@ import (
 	"strings"
 )
 
-type config struct {
-	Serve   serve           `yaml:"serve"`
-	Users   map[string]user `yaml:"users"`
+type Config struct {
+	Serve   Serve           `yaml:"serve"`
+	Users   map[string]User `yaml:"users"`
 	Devices []string        `yaml:"devices"`
 }
 
-type user struct {
+type User struct {
 	Devices []string `yaml:"devices"`
 	Name    string   `yaml:"name"`
 }
 
-type serve struct {
+type Serve struct {
 	Port             int64  `yaml:"port"`
 	Host             string `yaml:"host"`
 	Mode             string `yaml:"mode"`
@@ -38,14 +38,14 @@ type KeyResponseItem struct {
 	Key   string `json:"key"`
 }
 
-func readConfig() *config {
+func readConfig() *Config {
 	yamlFile, err := ioutil.ReadFile("./serve.yaml")
 
 	if err != nil {
 		panic(err)
 	}
 
-	var config config
+	var config Config
 
 	err = yaml.Unmarshal(yamlFile, &config)
 	if err != nil {
@@ -678,8 +678,8 @@ func main() {
 		mappedKeyResponses := make([]*KeyResponseItem, 0)
 		for _, key := range keys {
 			mappedKeyResponses = append(mappedKeyResponses, &KeyResponseItem{
-				KeyId: hex.EncodeToString(key.ID),
-				Key:   hex.EncodeToString(key.Key),
+				KeyId: key.KeyIdHex(),
+				Key:   key.KeyHex(),
 			})
 		}
 

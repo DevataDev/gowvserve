@@ -1,6 +1,9 @@
 package wv
 
-import wv "github.com/devatadev/gowvserve/wv/proto"
+import (
+	"encoding/hex"
+	wv "github.com/devatadev/gowvserve/wv/proto"
+)
 
 type KeyType int64
 
@@ -22,4 +25,12 @@ type Key struct {
 	ID []byte
 	// Key is the key.
 	Key []byte
+}
+
+func (c *Key) KeyIdHex() string {
+	return hex.EncodeToString(c.ID)
+}
+
+func (c *Key) KeyHex() string {
+	return hex.EncodeToString(c.Key)
 }
