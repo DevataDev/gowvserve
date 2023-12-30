@@ -35,3 +35,6 @@ devices:
 ### Thanks to :
 - [GoWidevine](https://github.com/iyear/gowidevine)
 - [PyWidevine](https://github.com/devine-dl/pywidevine)
+
+## Disclaimer
+This project is for research purposes only, the use of this code is your responsibility.
