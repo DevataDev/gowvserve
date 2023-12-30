@@ -188,7 +188,7 @@ func main() {
 		if err != nil {
 			c.JSON(400, gin.H{
 				"status":  400,
-				"message": "Failed to open session",
+				"message": "Failed to open session : " + err.Error(),
 			})
 			c.Abort()
 			return
@@ -196,7 +196,7 @@ func main() {
 		sessionIdHex := hex.EncodeToString(session.Id)
 		c.JSON(200, gin.H{
 			"status":  200,
-			"message": "Session opened",
+			"message": "Success",
 			"data": gin.H{
 				"session_id": sessionIdHex,
 				"system_id":  cdm.GetSystemId(),
