@@ -39,7 +39,7 @@ jobs:
           GOOSARCH=${{matrix.goosarch}}
           GOOS=${GOOSARCH%/*}
           GOARCH=${GOOSARCH#*/}
-          BINARY_NAME=${{github.repository}}-$GOOS-$GOARCH-${{github.event.release.tag_name}}
+          BINARY_NAME=${{github.repository}}-$GOOS-$GOARCH
           if [[ "$GOOS" == "windows" ]]; then
             BINARY_NAME="$BINARY_NAME.exe"
           fi
