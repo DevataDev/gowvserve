@@ -2,6 +2,7 @@
 Go implementation of PyWidevine serve
 
 ### Usage
+Put the `.wvd` files in the devices folder and run the gowvserve
 ```bash
 go run serve.go
 ```
