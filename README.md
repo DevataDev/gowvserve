@@ -38,3 +38,7 @@ devices:
 
 ## Disclaimer
 This project is for research purposes only, the use of this code is your responsibility.
+
+## Support
+If you like my work, consider buying me a coffee :)
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/devatadev)
