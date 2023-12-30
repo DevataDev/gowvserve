@@ -112,7 +112,6 @@ func main() {
 		})
 	})
 	router.GET("/:device/open", func(c *gin.Context) {
-		log.Printf("Device : %v", c.Param("device"))
 		secret_key := c.Request.Header["X-Secret-Key"]
 		device_name := c.Param("device")
 		if secret_key == nil {
@@ -185,7 +184,6 @@ func main() {
 				"session_id": sessionIdHex,
 			},
 		})
-		log.Printf("Session : %v", session)
 		return
 	})
 
@@ -273,7 +271,6 @@ func main() {
 			c.Abort()
 			return
 		}
-		log.Printf("Request body : %v", jsonBody)
 
 		// check if session_id and init_data are present on request body
 		if jsonBody["session_id"] == nil || jsonBody["certificate"] == nil {
@@ -327,7 +324,7 @@ func main() {
 		base64Certificate := jsonBody["certificate"].(string)
 		certificateDecoded, err := base64.StdEncoding.DecodeString(base64Certificate)
 
-		cert, err := cdm.SetServiceCertificate(sessionId, certificateDecoded)
+		_, err = cdm.SetServiceCertificate(sessionId, certificateDecoded)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"status":  400,
@@ -336,8 +333,7 @@ func main() {
 			c.Abort()
 			return
 		}
-		log.Printf("Certificate : %v", cert)
-		opened_cdm[cdmKey] = cdm
+
 		c.JSON(200, gin.H{
 			"status":  200,
 			"message": "Service certificate set",
@@ -370,7 +366,6 @@ func main() {
 			c.Abort()
 			return
 		}
-		log.Printf("Request body : %v", jsonBody)
 
 		// check if session_id and init_data are present on request body
 		if jsonBody["session_id"] == nil || jsonBody["init_data"] == nil {
@@ -459,8 +454,6 @@ func main() {
 			c.Abort()
 			return
 		}
-		log.Printf("Cdm : %v", cdm)
-		opened_cdm[cdmKey] = cdm
 
 		c.JSON(200, gin.H{
 			"status":  200,
@@ -496,8 +489,6 @@ func main() {
 			c.Abort()
 			return
 		}
-		log.Printf("Request body : %v", jsonBody)
-
 		// check if session_id and init_data are present on request body
 		if jsonBody["session_id"] == nil || jsonBody["license"] == nil {
 			c.JSON(400, gin.H{
@@ -597,7 +588,6 @@ func main() {
 			c.Abort()
 			return
 		}
-		log.Printf("Request body : %v", jsonBody)
 
 		// check if session_id and init_data are present on request body
 		if jsonBody["session_id"] == nil {
@@ -689,7 +679,6 @@ func main() {
 	host := config.Serve.Host
 	port := config.Serve.Port
 	address := host + ":" + strconv.FormatInt(port, 10)
-	log.Printf("Config : %v", config)
 
 	err := router.Run(address)
 	if err != nil {

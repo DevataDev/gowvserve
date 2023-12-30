@@ -11,7 +11,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	wv "github.com/devatadev/gowvserve/wv/proto"
-	"log"
 	"math/rand"
 	"time"
 
@@ -188,7 +187,6 @@ func (c *CDM) GetLicenseChallenge(sessionId []byte, pssh *PSSH, typ wv.LicenseTy
 			s.LicenseChallenge = licenseChallenge
 			s.LicenseChallengeRequest = licenseRequest
 			(*c.session)[i] = s
-			log.Printf("session: %v", s)
 			return s.LicenseChallenge, err
 		}
 	}
@@ -320,7 +318,6 @@ func (c *CDM) ParseLicense(sessionId []byte, license []byte) error {
 	for i, s := range *c.session {
 		// if session id matches then return license
 		if len(s.Id) == len(sessionId) && hmac.Equal(s.Id, sessionId) {
-			log.Printf("session: %v", s)
 			keys, err := c.parseLicense(license, s.LicenseChallengeRequest)
 			if err != nil {
 				return fmt.Errorf("parse license: %w", err)
@@ -334,7 +331,6 @@ func (c *CDM) ParseLicense(sessionId []byte, license []byte) error {
 }
 
 func (c *CDM) parseLicense(license []byte, licenseRequest []byte) ([]*Key, error) {
-	log.Printf("licenseRequest: %v", licenseRequest)
 	signedMsg := &wv.SignedMessage{}
 	if err := proto.Unmarshal(license, signedMsg); err != nil {
 		return nil, fmt.Errorf("unmarshal signed message: %w", err)
@@ -343,8 +339,6 @@ func (c *CDM) parseLicense(license []byte, licenseRequest []byte) ([]*Key, error
 		return nil, fmt.Errorf("invalid license type: %v", signedMsg.GetType())
 	}
 
-	log.Printf("device private key: %v", c.device.PrivateKey())
-	log.Printf("signedMsg.SessionKey: %v", signedMsg.SessionKey)
 	sessionKey, err := c.rsaOAEPDecrypt(c.device.PrivateKey(), signedMsg.SessionKey)
 	if err != nil {
 		return nil, fmt.Errorf("decrypt session key: %w", err)
@@ -355,8 +349,6 @@ func (c *CDM) parseLicense(license []byte, licenseRequest []byte) ([]*Key, error
 
 	derivedEncKey := deriveEncKey(licenseRequest, sessionKey)
 	derivedAuthKey := deriveAuthKey(licenseRequest, sessionKey)
-	log.Printf("derivedEncKey: %v", derivedEncKey)
-	log.Printf("derivedAuthKey: %v", derivedAuthKey)
 
 	licenseMsg := &wv.License{}
 	if err = proto.Unmarshal(signedMsg.Msg, licenseMsg); err != nil {
