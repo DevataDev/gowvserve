@@ -33,6 +33,11 @@ type serve struct {
 	ForcePrivacyMode bool   `yaml:"force_privacy_mode"`
 }
 
+type KeyResponseItem struct {
+	KeyId string `json:"key_id"`
+	Key   string `json:"key"`
+}
+
 func readConfig() *config {
 	yamlFile, err := ioutil.ReadFile("./serve.yaml")
 
@@ -322,7 +327,7 @@ func main() {
 		base64Certificate := jsonBody["certificate"].(string)
 		certificateDecoded, err := base64.StdEncoding.DecodeString(base64Certificate)
 
-		err = cdm.SetServiceCertificate(sessionId, certificateDecoded)
+		cert, err := cdm.SetServiceCertificate(sessionId, certificateDecoded)
 		if err != nil {
 			c.JSON(400, gin.H{
 				"status":  400,
@@ -331,6 +336,8 @@ func main() {
 			c.Abort()
 			return
 		}
+		log.Printf("Certificate : %v", cert)
+		opened_cdm[cdmKey] = cdm
 		c.JSON(200, gin.H{
 			"status":  200,
 			"message": "Service certificate set",
@@ -452,10 +459,12 @@ func main() {
 			c.Abort()
 			return
 		}
+		log.Printf("Cdm : %v", cdm)
+		opened_cdm[cdmKey] = cdm
 
 		c.JSON(200, gin.H{
 			"status":  200,
-			"message": "License challenge fetched",
+			"message": "Success",
 			"data": gin.H{
 				"challenge_b64": base64.StdEncoding.EncodeToString(challenge),
 			},
@@ -559,7 +568,7 @@ func main() {
 
 		c.JSON(200, gin.H{
 			"status":  200,
-			"message": "License parsed",
+			"message": "Success",
 		})
 		return
 	})
@@ -659,11 +668,19 @@ func main() {
 			return
 		}
 
+		mappedKeyResponses := make([]*KeyResponseItem, 0)
+		for _, key := range keys {
+			mappedKeyResponses = append(mappedKeyResponses, &KeyResponseItem{
+				KeyId: hex.EncodeToString(key.ID),
+				Key:   hex.EncodeToString(key.Key),
+			})
+		}
+
 		c.JSON(200, gin.H{
 			"status":  200,
-			"message": "Keys fetched",
+			"message": "Success",
 			"data": gin.H{
-				"keys": keys,
+				"keys": mappedKeyResponses,
 			},
 		})
 		return

@@ -11,6 +11,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	wv "github.com/devatadev/gowvserve/wv/proto"
+	"log"
 	"math/rand"
 	"time"
 
@@ -139,19 +140,20 @@ func (c *CDM) CloseSession(sessionId []byte) error {
 }
 
 // SetServiceCertificate sets the service certificate of the CDM.
-func (c *CDM) SetServiceCertificate(sessionId []byte, cert []byte) error {
+func (c *CDM) SetServiceCertificate(sessionId []byte, cert []byte) (*wv.DrmCertificate, error) {
 	for i, s := range *c.session {
 		// if session id matches then set service certificate
 		if len(s.Id) == len(sessionId) && hmac.Equal(s.Id, sessionId) {
 			serviceCert, _, err := ParseServiceCert(cert)
 			if err != nil {
-				return fmt.Errorf("parse service cert: %w", err)
+				return nil, fmt.Errorf("parse service cert: %w", err)
 			}
-			(*c.session)[i].ServiceCertificate = serviceCert
-			return nil
+			s.ServiceCertificate = serviceCert
+			(*c.session)[i] = s
+			return serviceCert, nil
 		}
 	}
-	return nil
+	return nil, fmt.Errorf("session not found")
 }
 
 // GetServiceCertificate returns the service certificate of the CDM.
@@ -176,14 +178,17 @@ func (c *CDM) GetSession(sessionId []byte) (*Session, error) {
 }
 
 func (c *CDM) GetLicenseChallenge(sessionId []byte, pssh *PSSH, typ wv.LicenseType, privacyMode bool) ([]byte, error) {
-	for _, s := range *c.session {
+	for i, s := range *c.session {
 		// if session id matches then return license challenge
 		if len(s.Id) == len(sessionId) && hmac.Equal(s.Id, sessionId) {
-			licenseChallenge, err := c.getLicenseChallenge(pssh, typ, privacyMode, s.ServiceCertificate)
+			licenseChallenge, licenseRequest, err := c.getLicenseChallenge(pssh, typ, privacyMode, s.ServiceCertificate)
 			if err != nil {
 				return nil, fmt.Errorf("get license challenge: %w", err)
 			}
 			s.LicenseChallenge = licenseChallenge
+			s.LicenseChallengeRequest = licenseRequest
+			(*c.session)[i] = s
+			log.Printf("session: %v", s)
 			return s.LicenseChallenge, err
 		}
 	}
@@ -193,7 +198,7 @@ func (c *CDM) GetLicenseChallenge(sessionId []byte, pssh *PSSH, typ wv.LicenseTy
 // GetLicenseChallenge returns the license challenge for the given PSSH.
 //
 // Set privacyMode to true to enable privacy mode, and you must provide a service certificate.
-func (c *CDM) getLicenseChallenge(pssh *PSSH, typ wv.LicenseType, privacyMode bool, serviceCert ...*wv.DrmCertificate) ([]byte, error) {
+func (c *CDM) getLicenseChallenge(pssh *PSSH, typ wv.LicenseType, privacyMode bool, serviceCert ...*wv.DrmCertificate) ([]byte, []byte, error) {
 	req := &wv.LicenseRequest{
 		Type:            wv.LicenseRequest_NEW.Enum(),
 		RequestTime:     Pointer(c.now().Unix()),
@@ -215,13 +220,13 @@ func (c *CDM) getLicenseChallenge(pssh *PSSH, typ wv.LicenseType, privacyMode bo
 	// set client id
 	if privacyMode {
 		if len(serviceCert) == 0 {
-			return nil, fmt.Errorf("privacy mode must provide cert")
+			return nil, nil, fmt.Errorf("privacy mode must provide cert")
 		}
 
 		cert := serviceCert[0]
 		encClientID, err := c.encryptClientID(cert)
 		if err != nil {
-			return nil, fmt.Errorf("encrypt client id: %w", err)
+			return nil, nil, fmt.Errorf("encrypt client id: %w", err)
 		}
 
 		req.EncryptedClientId = encClientID
@@ -231,7 +236,7 @@ func (c *CDM) getLicenseChallenge(pssh *PSSH, typ wv.LicenseType, privacyMode bo
 
 	reqData, err := proto.Marshal(req)
 	if err != nil {
-		return nil, fmt.Errorf("marshal license request: %w", err)
+		return nil, nil, fmt.Errorf("marshal license request: %w", err)
 	}
 
 	// signed license request signature
@@ -243,7 +248,7 @@ func (c *CDM) getLicenseChallenge(pssh *PSSH, typ wv.LicenseType, privacyMode bo
 		hashed[:],
 		&rsa.PSSOptions{SaltLength: rsa.PSSSaltLengthEqualsHash})
 	if err != nil {
-		return nil, fmt.Errorf("sign pss: %w", err)
+		return nil, nil, fmt.Errorf("sign pss: %w", err)
 	}
 
 	msg := &wv.SignedMessage{
@@ -254,10 +259,10 @@ func (c *CDM) getLicenseChallenge(pssh *PSSH, typ wv.LicenseType, privacyMode bo
 
 	data, err := proto.Marshal(msg)
 	if err != nil {
-		return nil, fmt.Errorf("marshal signed message: %w", err)
+		return nil, nil, fmt.Errorf("marshal signed message: %w", err)
 	}
 
-	return data, nil
+	return data, reqData, nil
 }
 
 func (c *CDM) encryptClientID(cert *wv.DrmCertificate) (*wv.EncryptedClientIdentification, error) {
@@ -312,21 +317,24 @@ func (c *CDM) randomBytes(length int) []byte {
 }
 
 func (c *CDM) ParseLicense(sessionId []byte, license []byte) error {
-	for _, s := range *c.session {
+	for i, s := range *c.session {
 		// if session id matches then return license
 		if len(s.Id) == len(sessionId) && hmac.Equal(s.Id, sessionId) {
-			keys, err := c.parseLicense(license, s.LicenseChallenge)
+			log.Printf("session: %v", s)
+			keys, err := c.parseLicense(license, s.LicenseChallengeRequest)
 			if err != nil {
 				return fmt.Errorf("parse license: %w", err)
 			}
 			s.Keys = keys
+			(*c.session)[i] = s
 			return nil
 		}
 	}
 	return fmt.Errorf("session not found")
 }
 
-func (c *CDM) parseLicense(license, licenseRequest []byte) ([]*Key, error) {
+func (c *CDM) parseLicense(license []byte, licenseRequest []byte) ([]*Key, error) {
+	log.Printf("licenseRequest: %v", licenseRequest)
 	signedMsg := &wv.SignedMessage{}
 	if err := proto.Unmarshal(license, signedMsg); err != nil {
 		return nil, fmt.Errorf("unmarshal signed message: %w", err)
@@ -335,6 +343,8 @@ func (c *CDM) parseLicense(license, licenseRequest []byte) ([]*Key, error) {
 		return nil, fmt.Errorf("invalid license type: %v", signedMsg.GetType())
 	}
 
+	log.Printf("device private key: %v", c.device.PrivateKey())
+	log.Printf("signedMsg.SessionKey: %v", signedMsg.SessionKey)
 	sessionKey, err := c.rsaOAEPDecrypt(c.device.PrivateKey(), signedMsg.SessionKey)
 	if err != nil {
 		return nil, fmt.Errorf("decrypt session key: %w", err)
@@ -345,6 +355,8 @@ func (c *CDM) parseLicense(license, licenseRequest []byte) ([]*Key, error) {
 
 	derivedEncKey := deriveEncKey(licenseRequest, sessionKey)
 	derivedAuthKey := deriveAuthKey(licenseRequest, sessionKey)
+	log.Printf("derivedEncKey: %v", derivedEncKey)
+	log.Printf("derivedAuthKey: %v", derivedAuthKey)
 
 	licenseMsg := &wv.License{}
 	if err = proto.Unmarshal(signedMsg.Msg, licenseMsg); err != nil {
@@ -380,7 +392,7 @@ func (c *CDM) GetKeys(sessionId []byte, keyType KeyType) ([]*Key, error) {
 	for _, s := range *c.session {
 		// if session id matches then return keys
 		if len(s.Id) == len(sessionId) && hmac.Equal(s.Id, sessionId) {
-			if keyType != 2 {
+			if keyType != 0 {
 				keys := make([]*Key, 0)
 				for _, key := range s.Keys {
 					mappedKeyType := KeyType(key.Type)
