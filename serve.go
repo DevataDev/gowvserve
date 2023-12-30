@@ -149,8 +149,9 @@ func main() {
 
 		selected_device := config.Devices[0]
 		for _, device := range config.Devices {
-			// if device contains device_name
-			if strings.Contains(device, device_name) {
+			deviceFilename := strings.Split(device, "/")
+			deviceFilename = strings.Split(deviceFilename[len(deviceFilename)-1], ".")
+			if deviceFilename[0] == device_name {
 				selected_device = device
 			}
 		}
