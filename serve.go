@@ -102,7 +102,7 @@ func main() {
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, HEAD, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept")
 		c.Header("Content-Type", "application/json")
-		c.Header("Server", "GoServe v1.0.0")
+		c.Header("X-Request-Via", "GoWVServe")
 		c.Header("Server", "https://github.com/devine-dl/pywidevine serve v1.8.0")
 		c.Next()
 	})
