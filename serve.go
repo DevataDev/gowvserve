@@ -112,14 +112,14 @@ func main() {
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status":  200,
-			"message": "GoServe is running!",
+			"message": "GoWVServe is running!",
 		})
 	})
 
 	router.HEAD("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status":  200,
-			"message": "GoServe is running!",
+			"message": "GoWVServe is running!",
 		})
 	})
 
