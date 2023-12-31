@@ -59,9 +59,7 @@ func readConfig() *Config {
 func main() {
 	config := readConfig()
 	mode := config.Serve.Mode
-	if mode == "" {
-		mode = "release"
-	} else if (mode == "prod") || (mode == "production") {
+	if (mode == "") || (mode == "prod") || (mode == "production") {
 		mode = "release"
 	} else {
 		mode = "debug"
