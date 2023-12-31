@@ -12,6 +12,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 )
@@ -141,7 +142,8 @@ func main() {
 			c.Abort()
 			return
 		}
-		if config.Users[secretKey.(string)].Devices[0] != deviceName {
+
+		if !slices.Contains(config.Users[secretKey.(string)].Devices, deviceName) {
 			c.JSON(401, gin.H{
 				"status":  401,
 				"message": "Unauthorized",
@@ -220,7 +222,7 @@ func main() {
 			return
 		}
 
-		if config.Users[secretKey.(string)].Devices[0] != deviceName {
+		if !slices.Contains(config.Users[secretKey.(string)].Devices, deviceName) {
 			c.JSON(401, gin.H{
 				"status":  401,
 				"message": "Unauthorized",
@@ -311,7 +313,7 @@ func main() {
 			return
 		}
 
-		if config.Users[secretKey.(string)].Devices[0] != deviceName {
+		if !slices.Contains(config.Users[secretKey.(string)].Devices, deviceName) {
 			c.JSON(401, gin.H{
 				"status":  401,
 				"message": "Unauthorized",
@@ -406,7 +408,7 @@ func main() {
 			return
 		}
 
-		if config.Users[secretKey.(string)].Devices[0] != deviceName {
+		if !slices.Contains(config.Users[secretKey.(string)].Devices, deviceName) {
 			c.JSON(401, gin.H{
 				"status":  401,
 				"message": "Unauthorized",
@@ -528,7 +530,8 @@ func main() {
 			return
 		}
 
-		if config.Users[secretKey.(string)].Devices[0] != deviceName {
+		// check if devices contains deviceName
+		if !slices.Contains(config.Users[secretKey.(string)].Devices, deviceName) {
 			c.JSON(401, gin.H{
 				"status":  401,
 				"message": "Unauthorized",
@@ -628,7 +631,7 @@ func main() {
 			return
 		}
 
-		if config.Users[secretKey.(string)].Devices[0] != deviceName {
+		if !slices.Contains(config.Users[secretKey.(string)].Devices, deviceName) {
 			c.JSON(401, gin.H{
 				"status":  401,
 				"message": "Unauthorized",
