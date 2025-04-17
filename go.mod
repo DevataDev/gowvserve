@@ -7,7 +7,7 @@ require (
 	github.com/Eyevinn/mp4ff v0.40.2
 	github.com/chmike/cmac-go v1.1.0
 	github.com/gin-gonic/gin v1.9.1
-	google.golang.org/protobuf v1.32.0
+	google.golang.org/protobuf v1.33.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
